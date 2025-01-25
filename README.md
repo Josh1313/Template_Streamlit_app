@@ -36,7 +36,7 @@ my_streamlit_app/
     ├── __init__.py             # Initializes the utils module
     ├── streamlit_style.py      # Custom styles to hide default Streamlit features
     └── analytics.py            # Google Analytics integration
-
+```
 
 ## Getting Started
 
