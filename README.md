@@ -13,9 +13,12 @@ This repository provides a **ready-to-use Streamlit application template** desig
 ## Project Structure
 
 Here’s how the project is organized:
+
 my_streamlit_app/
+
 │
 ├── main.py
+
 ├── app_pages/ # Contains all the pages of the application
 │ ├── init.py
 │ ├── home.py
