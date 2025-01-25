@@ -1,36 +1,42 @@
 # Streamlit Application Template
 
-This repository provides a **ready-to-use Streamlit application template** designed to help you focus on **integrating your pages and features** rather than spending time on setting up the basic structure, sidebars, or hiding default Streamlit features. Everything is already set up for you!
+This repository provides a **ready-to-use Streamlit application template**, designed to help you focus on **integrating your pages and features** rather than spending time on setting up the basic structure, sidebars, or hiding default Streamlit features. Everything is already set up for you!
+
+---
 
 ## Features
 
-- **Pre-configured Sidebar Menu**: A customizable sidebar menu is already implemented using `streamlit-option-menu`.
+- **Pre-configured Sidebar Menu**: A customizable sidebar menu is implemented using `streamlit-option-menu`.
 - **Hidden Default Features**: The default Streamlit features (like the deploy button, main menu, and footer) are hidden for a cleaner UI.
 - **Modular Structure**: The application is organized into a modular structure with separate folders for pages (`app_pages`) and utilities (`utils`).
 - **Google Analytics Integration**: Optional Google Analytics integration is included.
 - **Virtual Environment Setup**: Easy setup with a virtual environment and `requirements.txt`.
 
+---
+
 ## Project Structure
 
 Here’s how the project is organized:
 
+```plaintext
 my_streamlit_app/
-
 │
-├── main.py
+├── main.py                     # Main entry point for the app
+│
+├── app_pages/                  # Contains all the application pages
+│   ├── __init__.py             # Initializes the app_pages module
+│   ├── home.py                 # Home page logic
+│   ├── account.py              # Account management page
+│   ├── chat.py                 # Chat page
+│   ├── files.py                # File management page
+│   ├── model_selector.py       # Model selection page
+│   └── newpage.py              # Example new page
+│
+└── utils/                      # Utility functions and configurations
+    ├── __init__.py             # Initializes the utils module
+    ├── streamlit_style.py      # Custom styles to hide default Streamlit features
+    └── analytics.py            # Google Analytics integration
 
-├── app_pages/ # Contains all the pages of the application
-│ ├── init.py
-│ ├── home.py
-│ ├── account.py
-│ ├── chat.py
-│ ├── files.py
-│ ├── model_selector.py
-│ └── newpage.py
-└── utils/ # Contains utility functions and configurations
-├── init.py
-├── streamlit_style.py # Custom styles to hide default Streamlit features
-└── analytics.py # Google Analytics integration
 
 ## Getting Started
 
