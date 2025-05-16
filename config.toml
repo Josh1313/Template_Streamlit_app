@@ -1,0 +1,21 @@
+
+[server]
+# Enable Streamlit's file watcher
+enableStaticServing = true
+fileWatcherType = "auto"
+runOnSave = true
+
+# Increase file watcher timeout
+fileWatcherRecursive = true
+fileWatcherTimeout = 10
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+# Customize the theme if needed
+primaryColor = "#02ab21"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"
