@@ -12,3 +12,8 @@ langchain-openai==0.0.5
 pandas==2.2.2
 python-dotenv==1.0.1
 chardet
+matplotlib
+plotly
+lxml==5.0.0
+html5lib
+beautifulsoup4
