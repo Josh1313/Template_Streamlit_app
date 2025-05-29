@@ -1,23 +1,23 @@
 
-services:
-  streamlit-app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    image: my-streamlit-app:1.0  # Explicit image name
-    container_name: streamlit-app
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./:/app  # Code synchronization
-      - app_data:/app/data  # Persistent storage
-    env_file:
-      - .env
-    restart: unless-stopped
-    environment:
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0  # Explicit environment variable
-    # security_opt:
-    #   - no-new-privileges:true
+# services:
+#   streamlit-app:
+#     build: 
+#       context: .
+#       dockerfile: Dockerfile
+#     image: my-streamlit-app:1.0  # Explicit image name
+#     container_name: streamlit-app
+#     ports:
+#       - "8501:8501"
+#     volumes:
+#       - ./:/app  # Code synchronization
+#       - app_data:/app/data  # Persistent storage
+#     env_file:
+#       - .env
+#     restart: unless-stopped
+#     environment:
+#       - STREAMLIT_SERVER_ADDRESS=0.0.0.0  # Explicit environment variable
+#     # security_opt:
+#     #   - no-new-privileges:true
 
-volumes:
-  app_data:
+# volumes:
+#   app_data:

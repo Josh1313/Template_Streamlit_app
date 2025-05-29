@@ -5,184 +5,168 @@ from langchain.tools import tool
 from typing import Dict, Any, Optional
 import json
 from pydantic.v1 import BaseModel, Field
-from datetime import datetime
+import warnings
 
 class VisualizationGenerator:
-    """Handles all data visualization operations with smart defaults and error recovery"""
+    """Enhanced visualization handler with schema-aligned parameters"""
     
     @staticmethod
     def auto_detect_chart_type(df: pd.DataFrame) -> str:
-        """Determine the most appropriate chart type based on data characteristics"""
-        numeric_cols = df.select_dtypes(include='number').columns.tolist()
-        cat_cols = df.select_dtypes(exclude='number').columns.tolist()
-        
-        # Time series detection
-        for col in df.columns:
-            if pd.api.types.is_datetime64_any_dtype(df[col]):
-                return 'time_series'
-                
-        if not numeric_cols:
-            return 'bar'  # Fallback for non-numeric data
-            
-        if len(numeric_cols) == 1 and len(cat_cols) >= 1:
+        """Simplified chart type detection for supported types"""
+        numeric_cols = df.select_dtypes(include='number').columns
+        categorical_cols = df.select_dtypes(exclude='number').columns
+
+        if len(numeric_cols) == 1 and len(categorical_cols) >= 1:
             return 'pie' if len(df) <= 15 else 'bar'
-            
-        return 'histogram' if len(numeric_cols) >= 1 and not cat_cols else 'bar'
+        if len(numeric_cols) >= 1 and len(categorical_cols) >= 1:
+            return 'bar'
+        return 'bar'  # Default fallback
 
     @staticmethod
-    def create_visualization(df: pd.DataFrame, chart_type: Optional[str] = None, **kwargs):
-        """
-        Unified visualization interface with auto-detection and smart defaults
-        Args:
-            df: Input DataFrame
-            chart_type: Optional chart type override
-            kwargs: Visualization parameters (x, y, names, values, etc.)
-        """
+    def create_visualization(
+        df: pd.DataFrame,
+        chart_type: Optional[str] = None,
+        **kwargs
+    ) -> None:
+        """Controller for rendering charts in Streamlit"""
         try:
             if df.empty:
-                raise ValueError("Cannot visualize empty DataFrame")
-                
-            chart_type = chart_type or VisualizationGenerator.auto_detect_chart_type(df)
-            df = VisualizationGenerator._preprocess_data(df, chart_type, kwargs)
-            
-            viz_methods = {
-                'bar': VisualizationGenerator._create_bar,
-                'pie': VisualizationGenerator._create_pie,
-                'donut': VisualizationGenerator._create_donut,
-                'histogram': VisualizationGenerator._create_histogram,
-                'time_series': VisualizationGenerator._create_time_series
-            }
-            
-            if chart_type not in viz_methods:
-                raise ValueError(f"Unsupported chart type: {chart_type}")
-                
-            viz_methods[chart_type](df, **kwargs)
-            
+                raise ValueError("Empty DataFrame received")
+
+            # Determine chart type
+            ct = (chart_type or
+                  VisualizationGenerator.auto_detect_chart_type(df))
+            # Preprocess dates
+            df_proc = VisualizationGenerator._preprocess_data(df.copy())
+
+            # Validate required columns
+            VisualizationGenerator._validate_columns(ct, df_proc, kwargs)
+
+            # Dispatch to renderer
+            if ct == 'bar':
+                VisualizationGenerator._create_bar(df_proc, **kwargs)
+            elif ct == 'pie':
+                VisualizationGenerator._create_pie(df_proc, **kwargs)
+            else:
+                raise ValueError(f"Unsupported chart type: {ct}")
+
         except Exception as e:
-            st.error(f"Visualization failed: {str(e)}")
-            # Fallback to simple table display
-            st.write("Displaying raw data instead:")
-            st.dataframe(df)
+            st.error(f"Visualization error: {e}")
+            st.dataframe(df.head(3))
 
     @staticmethod
-    def _preprocess_data(df: pd.DataFrame, chart_type: str, kwargs: dict) -> pd.DataFrame:
-        """Clean and prepare data for visualization"""
-        # Handle datetime columns
-        if chart_type == 'time_series':
-            time_col = kwargs.get('x', next((col for col in df.columns if pd.api.types.is_datetime64_any_dtype(df[col])), None))
-            if time_col:
-                df[time_col] = pd.to_datetime(df[time_col])
-                kwargs['x'] = time_col
-        
-        # Ensure numeric columns are properly typed
-        for col in df.select_dtypes(include='object').columns:
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except (ValueError, TypeError):
-                pass
-                
-        return df.copy()
+    def _preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
+        """Attempt silent datetime conversion"""
+        for col in df.columns:
+            if pd.api.types.is_string_dtype(df[col]):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore', category=UserWarning)
+                df[col] = pd.to_datetime(df[col], errors='ignore', infer_datetime_format=True)
+        return df
 
     @staticmethod
-    def _create_bar(df: pd.DataFrame, **kwargs):
-        """Create bar chart with smart defaults"""
-        x = kwargs.get('x', df.select_dtypes(exclude='number').columns[0] if not df.select_dtypes(exclude='number').empty else df.columns[0])
-        y = kwargs.get('y', df.select_dtypes(include='number').columns[0] if not df.select_dtypes(include='number').empty else df.columns[1 % len(df.columns)])
-        title = kwargs.get('title', f"{y} by {x}")
-        
-        fig = px.bar(df, x=x, y=y, title=title, 
-                     color=x if len(df[x].unique()) <= 20 else None,
-                     text_auto=True)
+    def _validate_columns(
+        chart_type: str,
+        df: pd.DataFrame,
+        params: Dict[str, Any]
+    ) -> None:
+        """Ensure required fields are present based on chart type"""
+        missing = []
+        if chart_type == 'bar':
+            x = params.get('x_axis')
+            y = params.get('y_axis')
+            if not x:
+                raise ValueError("Parameter 'x_axis' is required for bar charts.")
+            if not y:
+                raise ValueError("Parameter 'y_axis' is required for bar charts.")
+            missing = [c for c in (x, y) if c not in df.columns]
+        elif chart_type == 'pie':
+            labels = params.get('labels')
+            values = params.get('values')
+            if not labels:
+                raise ValueError("Parameter 'labels' is required for pie charts.")
+            if not values:
+                raise ValueError("Parameter 'values' is required for pie charts.")
+            missing = [c for c in (labels, values) if c not in df.columns]
+
+        if missing:
+            raise ValueError(f"Missing required columns: {', '.join(missing)}")
+
+    @staticmethod
+    def _create_bar(df: pd.DataFrame, **params) -> None:
+        x = params.get('x_axis')
+        y = params.get('y_axis')
+        title = params.get('title', f"{y} by {x}")
+
+        # If y == 'count', aggregate counts
+        if str(y).lower() == 'count':
+            df_agg = df.groupby(x).size().reset_index(name='Count')
+            y_col = 'Count'
+        else:
+            df_agg = df
+            y_col = y
+
+        fig = px.bar(
+            df_agg,
+            x=x,
+            y=y_col,
+            title=title,
+            text_auto=True
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     @staticmethod
-    def _create_pie(df: pd.DataFrame, **kwargs):
-        """Create pie chart with parameter flexibility"""
-        names = kwargs.get('names', kwargs.get('x', df.select_dtypes(exclude='number').columns[0]))
-        values = kwargs.get('values', kwargs.get('y', df.select_dtypes(include='number').columns[0]))
-        title = kwargs.get('title', f"Distribution of {values} by {names}")
-        
-        fig = px.pie(df, names=names, values=values, title=title,
-                     hole=0, hover_data=[values])
+    def _create_pie(df: pd.DataFrame, **params) -> None:
+        labels = params.get('labels')
+        values = params.get('values')
+        title = params.get('title', f"Distribution of {values}")
+
+        fig = px.pie(
+            df,
+            names=labels,
+            values=values,
+            title=title,
+            hole=0.3
+        )
         st.plotly_chart(fig, use_container_width=True)
 
-    @staticmethod
-    def _create_donut(df: pd.DataFrame, **kwargs):
-        """Create donut chart with parameter flexibility"""
-        names = kwargs.get('names', kwargs.get('x', df.select_dtypes(exclude='number').columns[0]))
-        values = kwargs.get('values', kwargs.get('y', df.select_dtypes(include='number').columns[0]))
-        title = kwargs.get('title', f"Distribution of {values} by {names}")
-        
-        fig = px.pie(df, names=names, values=values, title=title,
-                     hole=0.4, hover_data=[values])
-        st.plotly_chart(fig, use_container_width=True)
-
-    @staticmethod
-    def _create_histogram(df: pd.DataFrame, **kwargs):
-        """Create histogram with smart binning"""
-        column = kwargs.get('column', kwargs.get('x', df.select_dtypes(include='number').columns[0]))
-        nbins = kwargs.get('nbins', min(50, len(df[column].unique())))
-        title = kwargs.get('title', f"Distribution of {column}")
-        
-        fig = px.histogram(df, x=column, nbins=nbins, title=title,
-                           marginal="box", hover_data=df.columns)
-        st.plotly_chart(fig, use_container_width=True)
-
-    @staticmethod
-    def _create_time_series(df: pd.DataFrame, **kwargs):
-        """Create time series plot with date handling"""
-        x = kwargs.get('x', next((col for col in df.columns if pd.api.types.is_datetime64_any_dtype(df[col])), df.columns[0]))
-        y = kwargs.get('y', df.select_dtypes(include='number').columns[0] if not df.select_dtypes(include='number').empty else df.columns[1 % len(df.columns)])
-        title = kwargs.get('title', f"{y} over time")
-        
-        fig = px.line(df, x=x, y=y, title=title,
-                      markers=True, line_shape="linear")
-        fig.update_xaxes(rangeslider_visible=True)
-        st.plotly_chart(fig, use_container_width=True)
 
 def json_to_dataframe(json_data: Dict[str, Any]) -> pd.DataFrame:
-    """Robust JSON to DataFrame conversion with multiple format support"""
+    """Convert JSON payload to DataFrame"""
     try:
         if isinstance(json_data, str):
             data = json.loads(json_data)
         else:
             data = json_data
-            
-        if isinstance(data, list):
-            return pd.DataFrame(data)
-            
-        if 'data' in data and 'columns' in data:
+
+        if isinstance(data, dict) and 'data' in data and 'columns' in data:
             return pd.DataFrame(data['data'], columns=data['columns'])
-            
-        if 'values' in data and 'index' in data:  # For series-like data
-            return pd.DataFrame(data['values'], index=data['index'])
-            
         return pd.DataFrame(data)
     except Exception as e:
-        st.error(f"Data parsing error: {str(e)}")
+        st.error(f"Data parsing failed: {e}")
         return pd.DataFrame()
-    
-class VizToolInput(BaseModel):
-    chart_type: str = Field("auto", description="Type of chart to create")
-    x: Optional[str] = Field(None, description="X-axis column")
-    y: Optional[str] = Field(None, description="Y-axis column")
-    names: Optional[str] = Field(None, description="Category names")
-    values: Optional[str] = Field(None, description="Values column")
-    title: Optional[str] = Field(None, description="Chart title")   
 
-# Update the tool decorator
+class VizToolInput(BaseModel):
+    """Input schema for visualization tool"""
+    chart_type: str = Field(..., description="Chart type: bar|pie")
+    x_axis: Optional[str] = Field(None, description="X-axis column (bar)")
+    y_axis: Optional[str] = Field(None, description="Y-axis column (bar)")
+    labels: Optional[str] = Field(None, description="Category labels (pie)")
+    values: Optional[str] = Field(None, description="Values column (pie)")
+    title: Optional[str] = Field(None, description="Chart title")
+
 @tool(args_schema=VizToolInput)
 def viz_tool(**kwargs) -> str:
-    """
-    Visualization tool that uses the current dataset from session state.
-    Now only requires visualization parameters, not the full data payload.
-    """
+    """LangChain function for rendering charts"""
     try:
         if 'uploaded_df' not in st.session_state:
-            return "No data available - upload a file first"
-            
+            return "Error: No data uploaded."
         df = st.session_state.uploaded_df
+        if df.empty:
+            return "Error: Empty dataset."
+
+        # Render
         VisualizationGenerator.create_visualization(df, **kwargs)
-        return "Visualization rendered successfully"
+        return "Visualization rendered successfully."
     except Exception as e:
-        return f"Visualization error: {str(e)}"
+        return f"Visualization failed: {e}."

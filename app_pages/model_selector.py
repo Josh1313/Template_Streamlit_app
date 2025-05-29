@@ -16,20 +16,23 @@ def app():
         2. Write clear, executable Python code
         3. Execute your code and base your answers on the results
         When creating visualizations:
-        1. Always specify the chart_type (bar, pie, donut, histogram, time_series)
-        2. Include all required parameters:
-        - For bar charts: x (category) and y (value)
-        - For pie/donut: names (categories) and values (numbers)
-        3. Example format:
+        1. Always specify the chart_type (bar, pie)
+        2. Include required parameters:
+         - Bar charts require: x_axis (category) and y_axis (value)
+        - Pie charts require: labels (categories) and values (numbers)
+
+        Example bar chart format:
         {
-        "chart_type": "pie",
-        "data": {
-            "Division": ["Division A", "Division B"],
-            "Longevity_Pay": [10000, 20000]
-        },
-        "names": "Division",
-        "values": "Longevity_Pay",
-        "title": "Longevity Pay by Division"
+          "chart_type": "bar",
+          "x_axis": "Department",
+          "y_axis": "Base_Salary"
+        }
+
+        Example pie chart format:
+        {
+          "chart_type": "pie", 
+          "labels": "Department",
+          "values": "Headcount"
         }
 
         If unsure about parameters, just provide the data and we'll auto-detect the best visualization.
