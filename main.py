@@ -12,7 +12,7 @@ from app_pages import home, account, chat, files, model_selector, newpage
 load_dotenv()
 
 # Configuración de la página
-st.set_page_config(page_title="Template", page_icon=":robot_face:")
+st.set_page_config(page_title="ITSM", page_icon=":robot_face:")
 
 hide_streamlit_style()
 
@@ -39,7 +39,7 @@ class MultiApp:
             # Obtener los títulos de las páginas dinámicamente
             page_titles = [app["title"] for app in self.apps]
             app = option_menu(
-                menu_title='Template 🤖',
+                menu_title='ITSM 🤖',
                 options=page_titles,# Títulos dinámicos
                 default_index=1,
                 menu_icon=":robot_face:",
@@ -64,12 +64,12 @@ if __name__ == "__main__":
     multi_app = MultiApp()
 
     # Agregar páginas dinámicamente con nombres personalizados
-    multi_app.add_app("Inicio", home.app)  # Nombre personalizado: "Inicio"
-    multi_app.add_app("Mi Cuenta", account.app)  # Nombre personalizado: "Mi Cuenta"
-    multi_app.add_app("Chatbot", chat.app)  # Nombre personalizado: "Chatbot"
-    multi_app.add_app("Archivos", files.app)  # Nombre personalizado: "Archivos"
-    multi_app.add_app("Modelos", model_selector.app)  # Nombre personalizado: "Modelos"
-    multi_app.add_app("Nueva Página", newpage.app)  # Nombre personalizado: "Nueva Página"
+    multi_app.add_app("Home", home.app)  # Nombre personalizado: "Inicio"
+    multi_app.add_app("Account", account.app)  # Nombre personalizado: "Mi Cuenta"
+    multi_app.add_app("AIChat", chat.app)  # Nombre personalizado: "Chatbot"
+    multi_app.add_app("files", files.app)  # Nombre personalizado: "Archivos"
+    multi_app.add_app("Prompt", model_selector.app)  # Nombre personalizado: "Modelos"
+    multi_app.add_app("Under Construction", newpage.app)  # Nombre personalizado: "Nueva Página"
 
     # Ejecutar la aplicación
     multi_app.run()
